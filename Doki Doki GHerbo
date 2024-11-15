@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Functional Phaser Space Shooter</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            background-color: #FF69B4;
+        }
+        canvas {
+            display: block;
+            margin: auto;
+        }
+    </style>
+</head>
+<body>
+    <script>
+        // Phaser game configuration
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            backgroundColor: '#FF69B4',
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 0 }
+                }
+            },
+            scene: {
+                preload: preloadScene,
+                create: createScene,
+                update: updateScene
+            }
+        };
+
+        const game = new Phaser.Game(config);
+
+        // Global state
+        let player;
+        let cursors;
+        let bullets;
+        let aliens;
+        let bulletTime = 0;
+
+        // Preload assets
+        function preloadScene() {
+            // Use better looking assets for the player, bullet, and alien.
+            this.load.image('player', 'https://cdn.discordapp.com/emojis/1121544836256891000.webp?size=96&quality=lossless');
+            this.load.image('bullet', 'https://cdn.discordapp.com/emojis/1125210207824392212.webp?size=96&quality=lossless');
+            this.load.image('alien', 'https://cdn.discordapp.com/emojis/1013323674419462195.webp?size=96&quality=lossless');
+        }
+
+        // Create game objects (player, bullets, aliens)
+        function createScene() {
+            player = createPlayer(this);
+            cursors = this.input.keyboard.createCursorKeys();
+            bullets = createBulletsGroup(this);
+            aliens = createAliensGroup(this);
+
+            // Fire bullets on spacebar press
+            this.input.keyboard.on('keydown-SPACE', () => fireBullet(this));
+        }
+
+        // Main update loop
+        function updateScene() {
+            updatePlayerMovement(cursors, player);
+            checkBulletCollision(bullets, aliens);
+        }
+
+        // Function to create the player
+        const createPlayer = (scene) => {
+            const player = scene.physics.add.sprite(scene.physics.world.bounds.width / 2, scene.physics.world.bounds.height - 50, 'player');
+            player.setCollideWorldBounds(true);
+            return player;
+        };
+
+        // Function to create a group of bullets
+        const createBulletsGroup = (scene) => {
+            const bullets = scene.physics.add.group({
+                defaultKey: 'bullet',
+                maxSize: 10
+            });
+            return bullets;
+        };
+
+        // Function to create a group of aliens
+        const createAliensGroup = (scene) => {
+            const aliens = scene.physics.add.group({
+                key: 'alien',
+                repeat: 10,
+                setXY: { x: 50, y: 50, stepX: 70 }
+            });
+
+            aliens.children.iterate(alien => {
+                alien.setVelocityY(Phaser.Math.Between(20, 50)); // Aliens move down at random speeds
+            });
+
+            return aliens;
+        };
+
+        // Function to update player movement (left/right)
+        const updatePlayerMovement = (cursors, player) => {
+            if (cursors.left.isDown) {
+                player.setVelocityX(-200);
+            } else if (cursors.right.isDown) {
+                player.setVelocityX(200);
+            } else {
+                player.setVelocityX(0);
+            }
+        };
+
+        // Function to fire a bullet
+        const fireBullet = (scene) => {
+            if (scene.time.now > bulletTime) {
+                const bullet = bullets.get(player.x, player.y - 20);
+
+                if (bullet) {
+                    bullet.setActive(true);
+                    bullet.setVisible(true);
+                    bullet.setVelocityY(-300);
+                    bulletTime = scene.time.now + 300; // Limit bullet firing rate
+                }
+            }
+        };
+
+        // Function to check bullet-alien collision
+        const checkBulletCollision = (bullets, aliens) => {
+            bullets.children.each(bullet => {
+                if (bullet.active) {
+                    aliens.children.each(alien => {
+                        if (alien.active && Phaser.Geom.Intersects.RectangleToRectangle(bullet.getBounds(), alien.getBounds())) {
+                            destroyAlien(alien);
+                            destroyBullet(bullet);
+                        }
+                    });
+                }
+            });
+        };
+
+        // Function to destroy an alien
+        const destroyAlien = (alien) => {
+            alien.setActive(false);
+            alien.setVisible(false);
+        };
+
+        // Function to destroy a bullet
+        const destroyBullet = (bullet) => {
+            bullet.setActive(false);
+            bullet.setVisible(false);
+        };
+
+    </script>
+</body>
+</html>
+
+
+<!-- # https://codehs.com/tutorial/andy/Programming_Sprites_in_JavaScript -->
