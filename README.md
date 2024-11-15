@@ -1,2 +1,2 @@
 # Games
-Mini games by me. 
+### Mini games by me. 
